@@ -1,0 +1,48 @@
+{
+  "name": "compass-cli",
+  "version": "0.1.0",
+  "description": "Personal knowledge management CLI with RAG - npm distribution wrapper",
+  "main": "bin/compass.js",
+  "bin": {
+    "compass": "bin/compass.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js"
+  },
+  "keywords": [
+    "cli",
+    "knowledge-management",
+    "rag",
+    "personal-assistant",
+    "notes",
+    "pkm"
+  ],
+  "author": "Compass CLI Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/compass-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/compass-cli/issues"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/compass-cli#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "files": [
+    "bin/",
+    "scripts/",
+    "vendor/",
+    "README.md"
+  ]
+}

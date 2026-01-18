@@ -1,0 +1,119 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          # macOS builds
+          - os: darwin
+            arch: x64
+            runner: macos-13
+            python: '3.11'
+          - os: darwin
+            arch: arm64
+            runner: macos-14
+            python: '3.11'
+
+          # Linux builds
+          - os: linux
+            arch: x64
+            runner: ubuntu-22.04
+            python: '3.11'
+          - os: linux
+            arch: arm64
+            runner: ubuntu-22.04-arm
+            python: '3.11'
+
+          # Windows builds
+          - os: windows
+            arch: x64
+            runner: windows-2022
+            python: '3.11'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e python/
+          pip install pyinstaller
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller packaging/pyinstaller.spec --clean --distpath packaging/artifacts
+
+      - name: Rename binary (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd packaging/artifacts
+          mv compass compass-${{ matrix.os }}-${{ matrix.arch }}
+          shasum -a 256 compass-${{ matrix.os }}-${{ matrix.arch }} > compass-${{ matrix.os }}-${{ matrix.arch }}.sha256
+
+      - name: Rename binary (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd packaging/artifacts
+          Move-Item compass.exe compass-${{ matrix.os }}-${{ matrix.arch }}.exe
+          Get-FileHash compass-${{ matrix.os }}-${{ matrix.arch }}.exe -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLower())  compass-${{ matrix.os }}-${{ matrix.arch }}.exe" } |
+            Out-File -Encoding ASCII compass-${{ matrix.os }}-${{ matrix.arch }}.exe.sha256
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: compass-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            packaging/artifacts/compass-${{ matrix.os }}-${{ matrix.arch }}*
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure
+        run: ls -R artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir release-assets
+          find artifacts -type f -name 'compass-*' -exec cp {} release-assets/ \;
+          cd release-assets
+          sha256sum compass-* > SHA256SUMS
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release-assets/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
