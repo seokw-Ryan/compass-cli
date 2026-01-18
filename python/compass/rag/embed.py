@@ -1,11 +1,22 @@
-"""Embedding generation."""
+"""Embedding generation.
+
+Embeddings can be generated locally (e.g., using Ollama) or via cloud APIs.
+When using cloud embedding services, document content is sent to the API.
+Users should be aware of this trade-off and can choose local models for
+complete privacy.
+"""
 
 from typing import List
 import hashlib
 
 
 class Embedder:
-    """Base embedder class."""
+    """Base embedder class.
+    
+    Embedders generate vector representations of text. For local-first
+    privacy, use local embedding models (e.g., Ollama). Cloud embedding
+    APIs will send document content to external services.
+    """
 
     def embed(self, text: str) -> List[float]:
         """Generate embedding for text."""

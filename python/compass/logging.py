@@ -1,4 +1,9 @@
-"""JSONL logging for run history."""
+"""JSONL logging for run history.
+
+All logs are stored locally in JSONL format. No log data is sent to
+external services or analytics platforms. Logs remain on the user's
+local filesystem only.
+"""
 
 import json
 from datetime import datetime
@@ -8,7 +13,11 @@ from compass.paths import get_state_dir, ensure_dir
 
 
 class RunLogger:
-    """Logger for command execution history."""
+    """Logger for command execution history.
+    
+    Logs are written to local JSONL files. All logging is local-only -
+    no telemetry or analytics are sent to external services.
+    """
 
     def __init__(self, log_file: Optional[Path] = None):
         """Initialize run logger."""

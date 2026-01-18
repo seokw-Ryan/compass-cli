@@ -1,4 +1,9 @@
-"""Configuration management using TOML."""
+"""Configuration management using TOML.
+
+All configuration is stored locally in TOML files. No configuration data
+is sent to external services. API keys and sensitive settings remain
+on the user's local filesystem only.
+"""
 
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -7,7 +12,11 @@ from compass.paths import get_config_dir, ensure_dir
 
 
 class Config:
-    """Configuration manager for Compass."""
+    """Configuration manager for Compass.
+    
+    Stores all configuration locally in TOML format. Configuration files
+    are stored in the XDG config directory (~/.config/compass/) by default.
+    """
 
     def __init__(self, config_path: Optional[Path] = None):
         """Initialize config manager."""

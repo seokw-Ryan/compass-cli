@@ -1,4 +1,9 @@
-"""Base LLM provider interface."""
+"""Base LLM provider interface.
+
+When using cloud LLM providers (OpenAI, Anthropic, Google), only the
+current query and context are sent to the API. Full conversation history
+is maintained locally and never sent to external services.
+"""
 
 from typing import List, Dict, Any, Optional
 from abc import ABC, abstractmethod
@@ -18,7 +23,12 @@ class Message:
 
 
 class LLMProvider(ABC):
-    """Base class for LLM providers."""
+    """Base class for LLM providers.
+    
+    Providers may use cloud APIs, but conversation history is maintained
+    locally. Only the current query and retrieved context are sent to
+    the LLM API.
+    """
 
     def __init__(
         self,

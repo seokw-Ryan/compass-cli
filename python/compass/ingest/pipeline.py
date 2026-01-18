@@ -1,4 +1,8 @@
-"""Ingestion pipeline orchestration."""
+"""Ingestion pipeline orchestration.
+
+Documents are processed locally and stored in the vault's SQLite database.
+No document content is sent to external services during ingestion.
+"""
 
 from pathlib import Path
 from typing import List, Dict, Any
@@ -7,7 +11,11 @@ from compass.ingest.chunking import SimpleChunker
 
 
 class IngestionPipeline:
-    """Orchestrates document ingestion."""
+    """Orchestrates document ingestion.
+    
+    Processes documents locally and stores them in the vault database.
+    All document content remains on the local filesystem.
+    """
 
     def __init__(self):
         """Initialize pipeline."""

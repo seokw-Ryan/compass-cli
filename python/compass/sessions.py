@@ -1,4 +1,9 @@
-"""Session management for chat and execution contexts."""
+"""Session management for chat and execution contexts.
+
+All session data is stored locally as JSON files. Session history,
+including full conversation messages, remains on the user's local
+filesystem and is never sent to external services.
+"""
 
 import uuid
 from datetime import datetime
@@ -9,7 +14,11 @@ from compass.paths import get_state_dir, ensure_dir
 
 
 class Session:
-    """Represents a Compass session."""
+    """Represents a Compass session.
+    
+    Sessions store conversation history locally. When using cloud LLM
+    providers, only the current query is sent - full history remains local.
+    """
 
     def __init__(self, session_id: Optional[str] = None):
         """Initialize or resume a session."""
