@@ -17,7 +17,7 @@ A Python-first CLI tool for personal knowledge management with RAG capabilities.
 
 ```bash
 npm install -g compass-cli
-compass --help
+compass
 ```
 
 ### From source
@@ -25,16 +25,19 @@ compass --help
 ```bash
 cd python
 pip install -e .
-python -m compass --help
+python -m compass
 ```
 
 ## Quick Start
 
 ```bash
+# Run once to complete interactive setup
+compass
+
 # Initialize a vault
 compass init --vault ~/my-vault
 
-# Configure settings
+# (Optional) Adjust settings after first run
 compass config set llm.provider openai
 compass config set llm.model gpt-4
 
