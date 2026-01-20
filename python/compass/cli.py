@@ -11,7 +11,8 @@ from rich import print as rprint
 from compass import __version__
 from compass.config import Config
 from compass.vault import Vault, find_vault
-from compass.paths import get_config_dir, get_vault_path
+from compass.paths import get_config_dir, get_vault_path, get_default_vault_path
+from compass.mcp import LocalDataAccess
 from compass.sessions import Session, SessionManager
 from compass.logging import RunLogger
 
@@ -96,6 +97,10 @@ def main(
         if can_prompt:
             console.print(f"[green]✓[/green] LLM mode set to: {choice}")
 
+    if not cfg.is_set("vault.default_path"):
+        cfg.set("vault.default_path", str(get_default_vault_path()))
+        cfg.save()
+
     if ctx.invoked_subcommand is None:
         compass_art = _load_logo()
         console.print(compass_art, style="cyan")
@@ -108,16 +113,8 @@ def main(
             console.print(entry)
 
         if can_prompt:
-            choice = Prompt.ask(
-                "Choose an option",
-                choices=[str(i) for i in range(1, chat_index + 1)],
-                default=str(chat_index),
-            )
-            choice_num = int(choice)
-            if choice_num == chat_index:
-                chat()
-            else:
-                exec(quick_options[choice_num - 1])
+            console.print("[dim]Starting chat...[/dim]")
+            chat()
         return
 
 
@@ -215,6 +212,14 @@ def chat(
     console.print("[bold cyan]Compass Chat[/bold cyan]")
     console.print("Type /help for commands, /exit to quit\n")
 
+    cfg = Config()
+    quick_options = _get_quick_options(cfg)
+    vault_path = vault or get_vault_path()
+    if vault_path is None:
+        default_path = cfg.get("vault.default_path")
+        vault_path = Path(default_path) if default_path else None
+    local_data = LocalDataAccess.from_config(vault_path)
+
     session_mgr = SessionManager()
     if resume:
         session = session_mgr.load(resume)
@@ -234,9 +239,18 @@ def chat(
             if not user_input.strip():
                 continue
 
+            stripped = user_input.strip()
+            if stripped.isdigit():
+                index = int(stripped)
+                if 1 <= index <= len(quick_options):
+                    user_input = quick_options[index - 1]
+
             # Handle slash commands
             if user_input.startswith("/"):
-                cmd = user_input[1:].lower()
+                raw_cmd = user_input[1:].strip()
+                cmd, _, rest = raw_cmd.partition(" ")
+                cmd = cmd.lower()
+                rest = rest.strip()
                 if cmd == "exit" or cmd == "quit":
                     console.print("[dim]Goodbye![/dim]")
                     session_mgr.save(session)
@@ -245,6 +259,36 @@ def chat(
                     console.print("\n[bold]Available commands:[/bold]")
                     console.print("  /help  - Show this help")
                     console.print("  /exit  - Exit chat")
+                    console.print("  /local status - Show local vault path")
+                    console.print("  /local list [dir] - List files in vault")
+                    console.print("  /local read <path> - Read a file from vault")
+                    continue
+                elif cmd in ("local", "mcp"):
+                    subcmd, _, subrest = rest.partition(" ")
+                    subcmd = subcmd.lower() if subcmd else "status"
+                    subrest = subrest.strip()
+                    if subcmd == "status":
+                        console.print(local_data.status())
+                    elif subcmd == "list":
+                        files = local_data.list_files(subrest)
+                        if not files:
+                            console.print("[dim]No files found.[/dim]")
+                        else:
+                            for entry in files[:50]:
+                                console.print(entry)
+                            if len(files) > 50:
+                                console.print(f"[dim]...and {len(files) - 50} more[/dim]")
+                    elif subcmd == "read":
+                        if not subrest:
+                            console.print("[yellow]Usage:[/yellow] /local read <path>")
+                        else:
+                            try:
+                                content = local_data.read_text(subrest)
+                                console.print(content)
+                            except FileNotFoundError:
+                                console.print(f"[yellow]Not found:[/yellow] {subrest}")
+                    else:
+                        console.print(f"[yellow]Unknown /local command:[/yellow] {subcmd}")
                     continue
                 else:
                     console.print(f"[yellow]Unknown command:[/yellow] /{cmd}")

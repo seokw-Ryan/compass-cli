@@ -39,6 +39,11 @@ def get_data_dir() -> Path:
     return get_xdg_data_home() / "compass"
 
 
+def get_default_vault_path() -> Path:
+    """Get the default local vault path."""
+    return get_data_dir() / "vault"
+
+
 def get_state_dir() -> Path:
     """Get Compass state directory."""
     if override := os.environ.get("COMPASS_STATE_HOME"):
