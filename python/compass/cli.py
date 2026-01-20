@@ -107,7 +107,7 @@ def main(
         console.print()
         if can_prompt:
             console.print("[dim]Starting chat...[/dim]")
-            chat()
+            chat(vault=None, resume=None)
         return
 
 
@@ -207,6 +207,8 @@ def chat(
 
     cfg = Config()
     quick_options = _get_quick_options(cfg)
+    if not isinstance(vault, (Path, type(None))):
+        vault = None
     vault_path = vault or get_vault_path()
     if vault_path is None:
         default_path = cfg.get("vault.default_path")
