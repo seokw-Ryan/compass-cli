@@ -105,13 +105,6 @@ def main(
         compass_art = _load_logo()
         console.print(compass_art, style="cyan")
         console.print()
-        quick_options = _get_quick_options(cfg)
-        menu_entries = [f"{idx}. {label}" for idx, label in enumerate(quick_options, start=1)]
-        chat_index = len(menu_entries) + 1
-        menu_entries.append(f"{chat_index}. Chat")
-        for entry in menu_entries:
-            console.print(entry)
-
         if can_prompt:
             console.print("[dim]Starting chat...[/dim]")
             chat()
