@@ -99,6 +99,8 @@ class Config:
             "llm": {
                 "mode": None,
                 "provider": "openai",
+                "api_key": None,
+                "local_model": None,
                 "model": "gpt-4",
                 "temperature": 0.7,
                 "max_tokens": 2000,
@@ -107,6 +109,9 @@ class Config:
                 "chunk_size": 512,
                 "chunk_overlap": 50,
                 "top_k": 5,
+            },
+            "setup": {
+                "ready": False,
             },
             "user": {
                 "name": None,
