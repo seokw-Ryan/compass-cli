@@ -90,7 +90,10 @@ def main(
         console.print(f"[bold]Welcome back, {name}![/bold]")
         console.print()
         console.print(ctx.get_help())
-        raise typer.Exit()
+        if can_prompt:
+            console.print("[dim]Starting chat...[/dim]")
+            chat()
+        return
 
 
 @app.command()
