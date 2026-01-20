@@ -13,14 +13,9 @@ A Python-first CLI tool for personal knowledge management with RAG capabilities.
 
 ## Installation
 
-### Via npm (recommended)
+Compass CLI is not yet published to npm or PyPI. Please install from source for now.
 
-```bash
-npm install -g compass-cli
-compass
-```
-
-### From source
+### From source (current)
 
 ```bash
 cd python
