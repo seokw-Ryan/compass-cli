@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from typing import Optional
+import sys
 import typer
 from rich.console import Console
 from rich.prompt import Prompt
@@ -18,6 +19,7 @@ app = typer.Typer(
     name="compass",
     help="Personal knowledge management with RAG",
     add_completion=False,
+    invoke_without_command=True,
 )
 console = Console()
 logger = RunLogger()
@@ -32,6 +34,7 @@ def version_callback(value: bool):
 
 @app.callback()
 def main(
+    ctx: typer.Context,
     version: bool = typer.Option(
         None,
         "--version",
@@ -42,7 +45,52 @@ def main(
     ),
 ):
     """Compass CLI - Personal knowledge management with RAG."""
-    pass
+    if ctx.resilient_parsing:
+        return
+
+    cfg = Config()
+    can_prompt = sys.stdin.isatty() and sys.stdout.isatty()
+    if not cfg.is_set("llm.mode"):
+        if can_prompt:
+            choice = Prompt.ask(
+                "Choose LLM mode (local keeps data on your machine)",
+                choices=["local", "api"],
+                default="local",
+            )
+        else:
+            choice = "local"
+        cfg.set("llm.mode", choice)
+        if choice == "local" and not cfg.is_set("llm.provider"):
+            cfg.set("llm.provider", "ollama")
+        cfg.save()
+        if can_prompt:
+            console.print(f"[green]✓[/green] LLM mode set to: {choice}")
+
+    if not cfg.is_set("user.name"):
+        if can_prompt:
+            name = Prompt.ask("What name should I greet you with?", default="friend")
+            name = name.strip() or "friend"
+        else:
+            name = "friend"
+        cfg.set("user.name", name)
+        cfg.save()
+
+    if ctx.invoked_subcommand is None:
+        name = cfg.get("user.name", "friend")
+        compass_art = r"""
+          /\
+     ____/  \____
+    /    \  /    \
+   /  /\  \/  /\  \
+   \  \/  /\  \/  /
+    \____/  \____/
+          \/
+        """
+        console.print(compass_art, style="cyan")
+        console.print(f"[bold]Welcome back, {name}![/bold]")
+        console.print()
+        console.print(ctx.get_help())
+        raise typer.Exit()
 
 
 @app.command()

@@ -24,6 +24,7 @@ class Config:
             config_path = get_config_dir() / "config.toml"
         self.config_path = config_path
         self._data: Dict[str, Any] = {}
+        self._file_data: Dict[str, Any] = {}
         self.load()
 
     def load(self) -> None:
@@ -33,8 +34,10 @@ class Config:
 
         # Merge with file contents if exists
         if self.config_path.exists():
-            file_data = toml.load(self.config_path)
-            self._merge_config(file_data)
+            self._file_data = toml.load(self.config_path)
+            self._merge_config(self._file_data)
+        else:
+            self._file_data = {}
 
     def save(self) -> None:
         """Save configuration to file."""
@@ -69,6 +72,17 @@ class Config:
         """Get all configuration as a dict."""
         return self._data.copy()
 
+    def is_set(self, key: str) -> bool:
+        """Check if a config key is explicitly set in the file."""
+        parts = key.split(".")
+        value: Any = self._file_data
+        for part in parts:
+            if isinstance(value, dict) and part in value:
+                value = value[part]
+            else:
+                return False
+        return True
+
     def _merge_config(self, source: Dict[str, Any]) -> None:
         """Merge source config into current config."""
         def merge_dict(target: dict, source: dict) -> None:
@@ -83,6 +97,7 @@ class Config:
         """Get default configuration."""
         return {
             "llm": {
+                "mode": None,
                 "provider": "openai",
                 "model": "gpt-4",
                 "temperature": 0.7,
@@ -92,6 +107,9 @@ class Config:
                 "chunk_size": 512,
                 "chunk_overlap": 50,
                 "top_k": 5,
+            },
+            "user": {
+                "name": None,
             },
             "vault": {
                 "default_path": None,
