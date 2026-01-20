@@ -103,6 +103,13 @@ class Config:
                 "temperature": 0.7,
                 "max_tokens": 2000,
             },
+            "quick": {
+                "options": [
+                    "Daily review",
+                    "Summarize recent notes",
+                    "Plan my day",
+                ],
+            },
             "rag": {
                 "chunk_size": 512,
                 "chunk_overlap": 50,

@@ -25,6 +25,36 @@ console = Console()
 logger = RunLogger()
 
 
+def _load_logo() -> str:
+    """Load the Compass logo from the design folder if available."""
+    logo_path = Path(__file__).resolve().parents[2] / "design" / "logo.txt"
+    if logo_path.exists():
+        return logo_path.read_text().rstrip()
+    return (
+        "  _____    ____    __  __   _____     __        _____    _____\n"
+        " / ____|  / __ \\  |  \\/  | |  __ \\   /  \\      / ____|  / ____|\n"
+        "| |      | |  | | | \\  / | | |__) | / /\\ \\    | (____   | (___\n"
+        "| |      | |  | | | |\\/| | |  ___/ / /  \\ \\    \\____ \\  \\___   \\\n"
+        "| |____  | |__| | | |  | | | |    / /    \\_\\   ____)  |  ____) |\n"
+        " \\_____|  \\____/  |_|  |_| |_|   /_/      \\_\\ |______/  |_____/\n"
+    )
+
+
+def _get_quick_options(cfg: Config) -> list[str]:
+    """Return quick options, ensuring they are stored locally."""
+    options = cfg.get("quick.options", [])
+    if not options:
+        options = [
+            "Daily review",
+            "Summarize recent notes",
+            "Plan my day",
+        ]
+    if not cfg.is_set("quick.options"):
+        cfg.set("quick.options", options)
+        cfg.save()
+    return options
+
+
 def version_callback(value: bool):
     """Show version and exit."""
     if value:
@@ -66,33 +96,28 @@ def main(
         if can_prompt:
             console.print(f"[green]✓[/green] LLM mode set to: {choice}")
 
-    if not cfg.is_set("user.name"):
-        if can_prompt:
-            name = Prompt.ask("What name should I greet you with?", default="friend")
-            name = name.strip() or "friend"
-        else:
-            name = "friend"
-        cfg.set("user.name", name)
-        cfg.save()
-
     if ctx.invoked_subcommand is None:
-        name = cfg.get("user.name", "friend")
-        compass_art = r"""
-          /\
-     ____/  \____
-    /    \  /    \
-   /  /\  \/  /\  \
-   \  \/  /\  \/  /
-    \____/  \____/
-          \/
-        """
+        compass_art = _load_logo()
         console.print(compass_art, style="cyan")
-        console.print(f"[bold]Welcome back, {name}![/bold]")
         console.print()
-        console.print(ctx.get_help())
+        quick_options = _get_quick_options(cfg)
+        menu_entries = [f"{idx}. {label}" for idx, label in enumerate(quick_options, start=1)]
+        chat_index = len(menu_entries) + 1
+        menu_entries.append(f"{chat_index}. Chat")
+        for entry in menu_entries:
+            console.print(entry)
+
         if can_prompt:
-            console.print("[dim]Starting chat...[/dim]")
-            chat()
+            choice = Prompt.ask(
+                "Choose an option",
+                choices=[str(i) for i in range(1, chat_index + 1)],
+                default=str(chat_index),
+            )
+            choice_num = int(choice)
+            if choice_num == chat_index:
+                chat()
+            else:
+                exec(quick_options[choice_num - 1])
         return
 
 
