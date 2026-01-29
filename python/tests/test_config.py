@@ -18,7 +18,7 @@ def temp_config():
 def test_config_defaults(temp_config):
     """Test default configuration."""
     config = Config(temp_config)
-    assert config.get("llm.provider") == "openai"
+    assert config.get("llm.provider") == "ollama"
     assert config.get("llm.model") == "gpt-4"
     assert config.get("rag.chunk_size") == 512
 

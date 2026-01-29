@@ -1,4 +1,8 @@
+-e python/
+-e ../jido
 typer[all]>=0.9.0
 rich>=13.7.0
 pydantic>=2.5.0
 toml>=0.10.2
+psutil>=5.9
+py-cpuinfo>=9.0

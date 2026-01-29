@@ -98,7 +98,7 @@ class Config:
         return {
             "llm": {
                 "mode": None,
-                "provider": "openai",
+                "provider": "ollama",
                 "model": "gpt-4",
                 "temperature": 0.7,
                 "max_tokens": 2000,

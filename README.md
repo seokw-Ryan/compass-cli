@@ -13,52 +13,48 @@ A Python-first CLI tool for personal knowledge management with RAG capabilities.
 
 ## Installation
 
-### Via npm (recommended)
-
 ```bash
-npm install -g compass-cli
-compass --help
+pip install -r requirements.txt
+compass
 ```
 
-### From source
+On first launch Compass shows a welcome screen where you pick your LLM provider (Local/Ollama, OpenAI, Anthropic, or Google) and optionally enter an API key. No other terminal commands are needed.
 
-```bash
-cd python
-pip install -e .
-python -m compass --help
-```
+### Requirements
+
+- Python 3.10+
+- [jido](https://github.com/your-org/jido) cloned alongside this repo (for hardware detection)
 
 ## Quick Start
 
 ```bash
-# Initialize a vault
+# Launch Compass — first run walks you through setup
+compass
+
+# Once inside chat, use slash commands:
+#   /settings  - Change provider, API key, or re-run hardware detection
+#   /help      - List all commands
+#   /exit      - Quit
+
+# You can also use subcommands directly:
 compass init --vault ~/my-vault
-
-# Configure settings
-compass config set llm.provider openai
-compass config set llm.model gpt-4
-
-# Ingest documents
 compass ingest ~/Documents
-
-# Start chat interface
-compass chat
-
-# Execute a one-off prompt
 compass exec "summarize my recent notes"
 ```
 
 ## Features
 
+- **Zero-Config Startup**: Run `compass` and configure everything in-app
+- **Hardware Detection**: Integrated [jido](https://github.com/your-org/jido) scans CPU, RAM, and GPU on first run
 - **Local-First Storage**: All data stored locally - documents, database, embeddings, sessions
 - **Privacy-Preserving**: No cloud storage, no telemetry, no data collection
 - XDG-compliant configuration management
 - Flexible vault structure (portable directories)
-- Multiple LLM provider support (OpenAI, Anthropic, Google, Ollama)
+- Multiple LLM provider support (Ollama, OpenAI, Anthropic, Google)
+- In-app `/settings` command to change provider and API keys at any time
 - Document ingestion and RAG pipeline
 - Session management and resumption
 - Custom slash commands
-- Decision journaling and weekly review tools
 
 ## Privacy & Data Storage
 

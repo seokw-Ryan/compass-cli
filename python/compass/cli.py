@@ -1,11 +1,11 @@
 """Main CLI interface using Typer."""
 
 from pathlib import Path
-from typing import Optional
-import sys
+from typing import Any, Dict, Optional
 import typer
 from rich.console import Console
 from rich.prompt import Prompt
+from rich.table import Table
 from rich import print as rprint
 
 from compass import __version__
@@ -56,6 +56,132 @@ def _get_quick_options(cfg: Config) -> list[str]:
     return options
 
 
+PROVIDERS = {
+    "1": ("local", "ollama", "Local (Ollama)"),
+    "2": ("api", "openai", "OpenAI"),
+    "3": ("api", "anthropic", "Anthropic"),
+    "4": ("api", "google", "Google"),
+}
+
+
+def _detect_hardware() -> Optional[Dict[str, Any]]:
+    """Run jido hardware detection if available."""
+    try:
+        from jido.core.hardware import detect
+        hardware, _env, _hints, _mid = detect.scan()
+        return hardware
+    except (ImportError, Exception):
+        return None
+
+
+def _display_hardware(hardware: Dict[str, Any]) -> None:
+    """Format and print hardware info using Rich."""
+    table = Table(title="Detected Hardware", show_header=False, border_style="cyan")
+    table.add_column("Component", style="bold")
+    table.add_column("Details")
+
+    cpu = hardware.get("cpu", {})
+    table.add_row("CPU", cpu.get("brand", "Unknown"))
+    table.add_row("Cores", f"{cpu.get('physical_cores', '?')} physical / {cpu.get('logical_cores', '?')} logical")
+
+    mem = hardware.get("memory", {})
+    total = mem.get("total_gb", 0)
+    table.add_row("RAM", f"{total:.1f} GB" if total else "Unknown")
+
+    gpus = hardware.get("gpus", [])
+    if gpus:
+        for i, gpu in enumerate(gpus):
+            name = gpu.get("name", "Unknown")
+            vram = gpu.get("vram_total_mb", 0)
+            label = f"GPU {i}" if len(gpus) > 1 else "GPU"
+            detail = f"{name} ({vram} MB)" if vram else name
+            table.add_row(label, detail)
+    else:
+        table.add_row("GPU", "None detected")
+
+    console.print(table)
+    console.print()
+
+
+def _first_run_setup(cfg: Config) -> None:
+    """First-run welcome screen: detect hardware and choose provider."""
+    console.print("\n[bold cyan]Welcome to Compass![/bold cyan]")
+    console.print("Let's configure your LLM provider.\n")
+
+    hardware = _detect_hardware()
+    if hardware:
+        _display_hardware(hardware)
+    else:
+        console.print("[dim]Hardware detection unavailable (install jido for details)[/dim]\n")
+
+    console.print("[bold]Choose your LLM provider:[/bold]")
+    for num, (_mode, _prov, label) in PROVIDERS.items():
+        console.print(f"  {num}. {label}")
+
+    choice = Prompt.ask("\nSelection", choices=list(PROVIDERS.keys()), default="1")
+    mode, provider, label = PROVIDERS[choice]
+
+    cfg.set("llm.mode", mode)
+    cfg.set("llm.provider", provider)
+
+    if mode == "api":
+        api_key = Prompt.ask(f"Enter your {label} API key", password=True)
+        if api_key.strip():
+            cfg.set("llm.api_key", api_key.strip())
+
+    cfg.save()
+    console.print(f"\n[green]\u2713[/green] Provider set to: {label}")
+
+
+def _handle_settings(cfg: Config) -> None:
+    """Implement the /settings slash command."""
+    while True:
+        mode = cfg.get("llm.mode", "not set")
+        provider = cfg.get("llm.provider", "not set")
+        api_key = cfg.get("llm.api_key")
+        masked = f"{api_key[:4]}{'*' * (len(api_key) - 4)}" if api_key else "not set"
+
+        console.print("\n[bold cyan]Settings[/bold cyan]")
+        console.print(f"  Mode:     {mode}")
+        console.print(f"  Provider: {provider}")
+        console.print(f"  API Key:  {masked}")
+        console.print()
+        console.print("  1. Change provider")
+        console.print("  2. Set API key")
+        console.print("  3. Re-run hardware detection")
+        console.print("  4. Back")
+
+        action = Prompt.ask("\nSelection", choices=["1", "2", "3", "4"], default="4")
+
+        if action == "1":
+            console.print("\n[bold]Choose provider:[/bold]")
+            for num, (_m, _p, label) in PROVIDERS.items():
+                console.print(f"  {num}. {label}")
+            pick = Prompt.ask("Selection", choices=list(PROVIDERS.keys()), default="1")
+            m, p, label = PROVIDERS[pick]
+            cfg.set("llm.mode", m)
+            cfg.set("llm.provider", p)
+            cfg.save()
+            console.print(f"[green]\u2713[/green] Provider set to: {label}")
+
+        elif action == "2":
+            key = Prompt.ask("Enter API key", password=True)
+            if key.strip():
+                cfg.set("llm.api_key", key.strip())
+                cfg.save()
+                console.print("[green]\u2713[/green] API key saved")
+
+        elif action == "3":
+            hardware = _detect_hardware()
+            if hardware:
+                _display_hardware(hardware)
+            else:
+                console.print("[dim]Hardware detection unavailable[/dim]")
+
+        else:
+            break
+
+
 def version_callback(value: bool):
     """Show version and exit."""
     if value:
@@ -80,22 +206,6 @@ def main(
         return
 
     cfg = Config()
-    can_prompt = sys.stdin.isatty() and sys.stdout.isatty()
-    if not cfg.is_set("llm.mode"):
-        if can_prompt:
-            choice = Prompt.ask(
-                "Choose LLM mode (local keeps data on your machine)",
-                choices=["local", "api"],
-                default="local",
-            )
-        else:
-            choice = "local"
-        cfg.set("llm.mode", choice)
-        if choice == "local" and not cfg.is_set("llm.provider"):
-            cfg.set("llm.provider", "ollama")
-        cfg.save()
-        if can_prompt:
-            console.print(f"[green]✓[/green] LLM mode set to: {choice}")
 
     if not cfg.is_set("vault.default_path"):
         cfg.set("vault.default_path", str(get_default_vault_path()))
@@ -105,9 +215,7 @@ def main(
         compass_art = _load_logo()
         console.print(compass_art, style="cyan")
         console.print()
-        if can_prompt:
-            console.print("[dim]Starting chat...[/dim]")
-            chat(vault=None, resume=None)
+        chat(vault=None, resume=None)
         return
 
 
@@ -206,6 +314,10 @@ def chat(
     console.print("Type /help for commands, /exit to quit\n")
 
     cfg = Config()
+
+    if not cfg.is_set("llm.mode"):
+        _first_run_setup(cfg)
+
     quick_options = _get_quick_options(cfg)
     if not isinstance(vault, (Path, type(None))):
         vault = None
@@ -252,11 +364,15 @@ def chat(
                     break
                 elif cmd == "help":
                     console.print("\n[bold]Available commands:[/bold]")
-                    console.print("  /help  - Show this help")
-                    console.print("  /exit  - Exit chat")
+                    console.print("  /help     - Show this help")
+                    console.print("  /settings - Configure LLM provider and API keys")
+                    console.print("  /exit     - Exit chat")
                     console.print("  /local status - Show local vault path")
                     console.print("  /local list [dir] - List files in vault")
                     console.print("  /local read <path> - Read a file from vault")
+                    continue
+                elif cmd == "settings":
+                    _handle_settings(cfg)
                     continue
                 elif cmd in ("local", "mcp"):
                     subcmd, _, subrest = rest.partition(" ")
